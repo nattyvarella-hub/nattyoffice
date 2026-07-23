@@ -6,13 +6,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#5B8DB8">
-<title>NattyOffice - Gestão Inteligente</title>
+<title>NattyOffice- Gestão Inteligente</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ============================================
-   DESIGN SYSTEM - MeuConsultório Premium
+   DESIGN SYSTEM - NattyOffice Premium
    ============================================ */
 
 :root {
@@ -1849,6 +1849,39 @@ svg[stroke="currentColor"], .lucide {
     </div>
   </div>
 
+  <!-- MODAL EDITAR RECEITA -->
+  <div class="overlay" id="modal-receita-edit">
+    <div class="modal-sheet">
+      <div class="modal-drag"></div>
+      <h3><i data-lucide="dollar-sign"></i> Editar Receita</h3>
+      <input type="hidden" id="rec-edit-id">
+      <div class="form-group"><label>Paciente</label><select id="rec-edit-pac"></select></div>
+      <div class="form-group"><label>Data</label><input type="date" id="rec-edit-data"></div>
+      <div class="form-group"><label>Valor R$</label><input type="number" id="rec-edit-valor" placeholder="0,00" step="0.01"></div>
+      <div class="form-group"><label>Tipo</label><select id="rec-edit-tipo"></select></div>
+      <div class="form-group"><label>Pagamento</label>
+        <select id="rec-edit-pag"><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Boleto</option></select>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="rec-edit-st"><option>Pago</option><option>Pendente</option></select>
+      </div>
+      <button class="btn-full btn-primary" onclick="salvarEdicaoReceita()">Salvar alterações</button>
+      <button class="btn-full btn-secondary" onclick="closeModal('modal-receita-edit')" style="margin-top:8px">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- MODAL CONFIRMAR EXCLUSÃO RECEITA -->
+  <div class="overlay" id="modal-receita-delete">
+    <div class="modal-sheet">
+      <div class="modal-drag"></div>
+      <h3><i data-lucide="trash-2"></i> Excluir Receita</h3>
+      <p class="hint" style="margin-bottom:16px">Tem certeza que deseja excluir a receita de <b id="receita-delete-nome"></b> no valor de <b id="receita-delete-valor"></b>?<br><br>Esta ação não pode ser desfeita.</p>
+      <input type="hidden" id="receita-delete-id">
+      <button class="btn-full btn-danger" onclick="confirmarExcluirReceita()">Sim, excluir</button>
+      <button class="btn-full btn-secondary" onclick="closeModal('modal-receita-delete')" style="margin-top:8px">Cancelar</button>
+    </div>
+  </div>
+
   <div class="overlay" id="modal-gasto">
     <div class="modal-sheet">
       <div class="modal-drag"></div>
@@ -1906,14 +1939,29 @@ svg[stroke="currentColor"], .lucide {
     </div>
   </div>
 
-  <div class="overlay" id="modal-config-horario">
+  <div class="overlay" id="modal-config-backup">
     <div class="modal-sheet">
       <div class="modal-drag"></div>
-      <h3><i data-lucide="clock"></i> Horário de Atendimento</h3>
-      <div class="form-group"><label>Abertura da agenda</label><select id="cfg-h-ini"></select></div>
-      <div class="form-group"><label>Fechamento da agenda</label><select id="cfg-h-fim"></select></div>
-      <p class="hint">A agenda aceita agendamentos em qualquer horário dentro desse intervalo. Consultas marcadas em horários "quebrados" (ex.: 18:30) também aparecem na grade.</p>
-      <button class="btn-full btn-primary" onclick="salvarHorario()">Salvar</button>
+      <h3><i data-lucide="save"></i> Backup Local</h3>
+      <p class="hint">Salvo no aparelho. Baixe o arquivo para não perder nada.</p>
+      <button class="btn-full btn-primary" onclick="exportarDados()"><i data-lucide="arrow-down"></i> Baixar backup (JSON)</button>
+      <button class="btn-full btn-secondary" onclick="document.getElementById('import-file').click()"><i data-lucide="arrow-up"></i> Restaurar backup</button>
+      <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importarDados(event)">
+      
+      <hr style="border:none;border-top:1px solid #E5E5EA;margin:20px 0">
+      
+      <h3><i data-lucide="cloud"></i> Nuvem (Firebase)</h3>
+      <p class="hint">Sincronize com a nuvem para acessar de outros aparelhos.</p>
+      <div class="toggle-item" style="margin-bottom:10px">
+        <span>Auto-salvar na Nuvem</span>
+        <label class="switch"><input type="checkbox" id="cfg-nuvem-auto" onchange="toggleNuvemAuto()"><span></span></label>
+      </div>
+      <button class="btn-full btn-primary" onclick="forcarEnvioNuvem()"><i data-lucide="arrow-up"></i> Forçar envio pra Nuvem</button>
+      <button class="btn-full btn-secondary" onclick="puxarDaNuvem()"><i data-lucide="arrow-down"></i> Puxar dados da Nuvem</button>
+      
+      <hr style="border:none;border-top:1px solid #E5E5EA;margin:20px 0">
+      <button class="btn-full btn-danger" onclick="limparDados()"><i data-lucide="trash-2"></i> Apagar todos os dados locais</button>
+      <button class="btn-full btn-secondary" onclick="closeModal('modal-config-backup')">Fechar</button>
     </div>
   </div>
 
@@ -2019,32 +2067,18 @@ svg[stroke="currentColor"], .lucide {
     </div>
   </div>
 
-    <div class="overlay" id="modal-config-backup">
+  <div class="overlay" id="modal-config-backup">
     <div class="modal-sheet">
       <div class="modal-drag"></div>
-      <h3><i data-lucide="save"></i> Backup Local</h3>
-      <p class="hint">Salvo no aparelho. Baixe o arquivo para não perder nada.</p>
-      <button class="btn-full btn-primary" onclick="exportarDados()"><i data-lucide="arrow-down"></i> Baixar backup (JSON)</button>
-      <button class="btn-full btn-secondary" onclick="document.getElementById('import-file').click()"><i data-lucide="arrow-up"></i> Restaurar backup</button>
+      <h3><i data-lucide="save"></i> Backup e Dados</h3>
+      <p class="hint">Suas alterações ficam salvas automaticamente <b>neste aparelho/navegador</b>. Para não perder nada (ou trocar de aparelho), baixe o backup regularmente.</p>
+      <button class="btn-full btn-primary" onclick="exportarDados()"><i data-lucide="arrow-down"></i>️ Baixar backup (JSON)</button>
+      <button class="btn-full btn-secondary" onclick="document.getElementById('import-file').click()"><i data-lucide="arrow-up"></i>️ Restaurar backup</button>
       <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importarDados(event)">
-      
-      <hr style="border:none;border-top:1px solid #E5E5EA;margin:20px 0">
-      
-      <h3><i data-lucide="cloud"></i> Nuvem (Firebase)</h3>
-      <p class="hint">Sincronize com a nuvem para acessar de outros aparelhos.</p>
-      <div class="toggle-item" style="margin-bottom:10px">
-        <span>Auto-salvar na Nuvem</span>
-        <label class="switch"><input type="checkbox" id="cfg-nuvem-auto" onchange="toggleNuvemAuto()"><span></span></label>
-      </div>
-      <button class="btn-full btn-primary" onclick="forcarEnvioNuvem()"><i data-lucide="arrow-up"></i> Forçar envio pra Nuvem</button>
-      <button class="btn-full btn-secondary" onclick="puxarDaNuvem()"><i data-lucide="arrow-down"></i> Puxar dados da Nuvem</button>
-      
-      <hr style="border:none;border-top:1px solid #E5E5EA;margin:20px 0">
-      <button class="btn-full btn-danger" onclick="limparDados()"><i data-lucide="trash-2"></i> Apagar todos os dados locais</button>
+      <button class="btn-full btn-danger" onclick="limparDados()"><i data-lucide="trash-2"></i> Apagar todos os dados</button>
       <button class="btn-full btn-secondary" onclick="closeModal('modal-config-backup')">Fechar</button>
     </div>
   </div>
-
 
 
     <div class="overlay" id="modal-pacote">
@@ -2264,6 +2298,7 @@ function loadAll() {
     pacotes = d.pacotes || [];
     config = mergeCfg(d.config);
   } else {
+    // Primeira vez que o app é aberto — carrega dados de exemplo
     pacientes = clone(seedPacientes);
     tipos = clone(seedTipos);
     agendamentos = clone(seedAgendamentos);
@@ -2454,7 +2489,7 @@ function renderTimelineDia() {
 
   document.getElementById('timeline').innerHTML = horarios.map(hora => {
     const ags = ag.filter(a => a.hora === hora);
-    if (ags.length === 0) return `<div class="time-slot"><div class="time-label">${hora}</div><div class="time-card empty">Livre</div></div>`;
+    if (ags.length === 0) return `<div class="time-slot"><div class="time-label">${hora}</div><div class="time-card empty" onclick="abrirAgendamentoHorario('${hora}')">Livre — <span style="color:var(--theme);font-weight:700">+ agendar</span></div></div>`;
     return ags.map(a => {
       const p = pacientes.find(x => x.id == a.pacId);
       const t = tipos.find(x => x.nome === a.tipo);
@@ -2596,6 +2631,18 @@ function salvarAgendamento() {
 }
 
 // Ações de uma consulta (toque no cartão da agenda)
+function abrirAgendamentoHorario(hora) {
+  document.getElementById('ag-pac').innerHTML = pacientes.filter(p => p.ativo).map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  document.getElementById('ag-tipo').innerHTML = tipos.map(t => `<option value="${t.nome}">${t.nome}</option>`).join('');
+  document.getElementById('ag-data').value = dataSel;
+  document.getElementById('ag-hora').value = hora;
+  document.getElementById('ag-obs').value = '';
+  document.getElementById('ag-lembrete').checked = true;
+  document.getElementById('ag-recorrencia').value = '';
+  document.getElementById('rec-info').style.display = 'none';
+  openModal('modal-agend');
+}
+
 function abrirAcoesAgend(id) {
   agAcoesId = id;
   const a = agendamentos.find(x => x.id === id);
@@ -2919,7 +2966,7 @@ function renderFinanceiro() {
   // Lista de receitas
   document.getElementById('fin-list-rec').innerHTML = recMes.slice().sort((a, b) => b.data.localeCompare(a.data)).map(r => {
     const p = pacientes.find(x => x.id == r.pacId);
-    return `<div class="card"><div class="card-avatar" style="background:${p?.color || '#ccc'}">${getIni(p?.nome || '')}</div><div class="card-info"><div class="card-title">${p?.nome}</div><div class="card-sub">${fmt(r.data)} • ${r.tipo} • ${r.pagamento}</div></div><span class="card-badge ${r.status === 'Pago' ? 'badge-pago' : 'badge-pend'}">R$ ${r.valor.toFixed(2)}</span></div>`;
+    return `<div class="card"><div class="card-avatar" style="background:${p?.color || '#ccc'}">${getIni(p?.nome || '')}</div><div class="card-info"><div class="card-title">${p?.nome}</div><div class="card-sub">${fmt(r.data)} • ${r.tipo} • ${r.pagamento}</div></div><span class="card-badge ${r.status === 'Pago' ? 'badge-pago' : 'badge-pend'}">R$ ${r.valor.toFixed(2)}</span><div class="gas-actions"><button class="btn-edit-sm" onclick="event.stopPropagation(); editarReceita(${r.id})" title="Editar">✏️</button><button class="btn-delete-sm" onclick="event.stopPropagation(); excluirReceita(${r.id})" title="Excluir">🗑</button></div></div>`;
   }).join('') || '<p style="color:var(--text-muted);text-align:center;padding:20px;font-weight:500;">Nenhuma receita neste mês</p>';
 
   // Lista de gastos
@@ -2950,6 +2997,61 @@ function salvarReceita() {
   save();
   closeModal('modal-fin'); toast('Receita registrada!');
   document.getElementById('fin-valor').value = '';
+  renderFinanceiro(); renderHome();
+}
+
+function editarReceita(id) {
+  const r = receitas.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('rec-edit-id').value = r.id;
+  document.getElementById('rec-edit-pac').innerHTML = pacientes.filter(p => p.ativo).map(p => `<option value="${p.id}" ${p.id == r.pacId ? 'selected' : ''}>${p.nome}</option>`).join('');
+  document.getElementById('rec-edit-data').value = r.data;
+  document.getElementById('rec-edit-valor').value = r.valor;
+  document.getElementById('rec-edit-tipo').innerHTML = tipos.map(t => `<option value="${t.nome}" ${t.nome === r.tipo ? 'selected' : ''}>${t.nome}</option>`).join('');
+  document.getElementById('rec-edit-pag').value = r.pagamento;
+  document.getElementById('rec-edit-st').value = r.status;
+  openModal('modal-receita-edit');
+}
+
+function salvarEdicaoReceita() {
+  const id = parseInt(document.getElementById('rec-edit-id').value);
+  const r = receitas.find(x => x.id === id);
+  if (!r) { toast('Receita não encontrada'); return; }
+
+  const pacId = parseInt(document.getElementById('rec-edit-pac').value);
+  const data = document.getElementById('rec-edit-data').value;
+  const valor = parseFloat(document.getElementById('rec-edit-valor').value) || 0;
+  const tipo = document.getElementById('rec-edit-tipo').value;
+  const pagamento = document.getElementById('rec-edit-pag').value;
+  const status = document.getElementById('rec-edit-st').value;
+
+  if (!pacId || !data || !valor) { toast('Preencha todos os campos obrigatórios'); return; }
+
+  r.pacId = pacId; r.data = data; r.valor = valor; r.tipo = tipo;
+  r.pagamento = pagamento; r.status = status;
+
+  save();
+  closeModal('modal-receita-edit');
+  toast('Receita atualizada! ✅');
+  renderFinanceiro(); renderHome();
+}
+
+function excluirReceita(id) {
+  const r = receitas.find(x => x.id === id);
+  if (!r) return;
+  const p = pacientes.find(x => x.id == r.pacId);
+  document.getElementById('receita-delete-nome').textContent = p ? p.nome : 'Paciente';
+  document.getElementById('receita-delete-valor').textContent = 'R$ ' + r.valor.toFixed(2);
+  document.getElementById('receita-delete-id').value = r.id;
+  openModal('modal-receita-delete');
+}
+
+function confirmarExcluirReceita() {
+  const id = parseInt(document.getElementById('receita-delete-id').value);
+  receitas = receitas.filter(r => r.id !== id);
+  save();
+  closeModal('modal-receita-delete');
+  toast('Receita excluída');
   renderFinanceiro(); renderHome();
 }
 
@@ -3532,6 +3634,8 @@ function calcularRecorrencia() {
   ateEl.textContent = fmtFull(isoLocal(ultimaData));
   info.style.display = 'block';
 }
+
+// ==================== INICIALIZAÇÃO ====================
 // ==================== FIREBASE CLOUD SYNC ====================
 // Substitua as chaves abaixo pelas do seu projeto Firebase
 const firebaseConfig = {
@@ -3543,14 +3647,15 @@ const firebaseConfig = {
     appId: "1:775789755196:web:c1c754467b9fc0e481bc39",
     measurementId: "G-X49545TGH4"
   };
-   
-let dbNuvem = null;
+
+   let dbNuvem = null;
 // Inicializa o Firebase apenas se a chave foi colocada
 if (firebaseConfig.apiKey !== "AIzaSyDtQNSAdvJ3IWsCSe5_l5cEGmkgQ9MKP6k") {
   firebase.initializeApp(firebaseConfig);
   dbNuvem = firebase.firestore();
 }
-
+   
+   
 // Configuração de auto-save
 if (typeof config.nuvemAuto === 'undefined') config.nuvemAuto = false;
 
@@ -3636,9 +3741,8 @@ openModal = function(id) {
   }
 };
 
-// ==================== INICIALIZAÇÃO ====================
+   
 loadAll();
-if (!pacotes || pacotes.length === 0) { pacotes = clone(seedPacotes); save(); }
 aplicarTema();
 aplicarLogo();
 renderHome();
