@@ -1801,6 +1801,9 @@ svg[stroke="currentColor"], .lucide {
       <div class="config-item" onclick="acaoGoogle()">
         <span><i data-lucide="calendar"></i> <span id="ag-acoes-google-label">Adicionar ao Google Agenda</span></span><span><i data-lucide="chevron-right"></i></span>
       </div>
+      <div class="config-item" onclick="editarAgendamento()">
+        <span><i data-lucide="pencil"></i> Editar agendamento</span><span><i data-lucide="chevron-right"></i></span>
+      </div>
       <div class="config-item" onclick="acaoCancelar()">
         <span style="color:#FF3B30"><i data-lucide="trash-2"></i> Cancelar agendamento</span><span><i data-lucide="chevron-right"></i></span>
       </div>
@@ -2613,6 +2616,58 @@ async function acaoGoogle() {
   }
   renderAgenda();
 }
+function editarAgendamento() {
+  const a = agendamentos.find(x => x.id === agAcoesId);
+  if (!a) return;
+  closeModal('modal-agend-acoes');
+
+  document.getElementById('ag-edit-id').value = a.id;
+  document.getElementById('ag-edit-pac').innerHTML = pacientes.filter(p => p.ativo).map(p => `<option value="${p.id}" ${p.id == a.pacId ? 'selected' : ''}>${p.nome}</option>`).join('');
+  document.getElementById('ag-edit-data').value = a.data;
+  document.getElementById('ag-edit-hora').value = a.hora;
+  document.getElementById('ag-edit-tipo').innerHTML = tipos.map(t => `<option value="${t.nome}" ${t.nome === a.tipo ? 'selected' : ''}>${t.nome}</option>`).join('');
+  document.getElementById('ag-edit-obs').value = a.obs || '';
+  document.getElementById('ag-edit-lembrete').checked = a.lembrete || false;
+
+  openModal('modal-agend-edit');
+}
+
+function salvarEdicaoAgendamento() {
+  const id = parseInt(document.getElementById('ag-edit-id').value);
+  const a = agendamentos.find(x => x.id === id);
+  if (!a) { toast('Agendamento não encontrado'); return; }
+
+  const pacId = parseInt(document.getElementById('ag-edit-pac').value);
+  const data = document.getElementById('ag-edit-data').value;
+  const hora = document.getElementById('ag-edit-hora').value;
+  const tipo = document.getElementById('ag-edit-tipo').value;
+  const obs = document.getElementById('ag-edit-obs').value;
+  const lembrete = document.getElementById('ag-edit-lembrete').checked;
+
+  if (!pacId || !data || !hora) { toast('Preencha todos os campos obrigatórios'); return; }
+
+  // Atualiza o agendamento
+  a.pacId = pacId;
+  a.data = data;
+  a.hora = hora;
+  a.tipo = tipo;
+  a.obs = obs;
+  a.lembrete = lembrete;
+
+  // Se estava sincronizado com Google, atualiza lá também
+  if (a.gcalId && config.google.connected) {
+    gcalPush(a).then(ok => {
+      if (ok) toast('Agendamento atualizado no Google Agenda!');
+    });
+  }
+
+  save();
+  closeModal('modal-agend-edit');
+  toast('Agendamento atualizado! ✅');
+  dataSel = data;
+  renderAgenda(); renderHome();
+}
+
 async function acaoCancelar() {
   const a = agendamentos.find(x => x.id === agAcoesId);
   if (!a) return;
