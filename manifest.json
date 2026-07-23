@@ -1,0 +1,12 @@
+{
+  "name": "Meu Consultório",
+  "short_name": "Consultório",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F5F7FA",
+  "theme_color": "#5B8DB8",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192" },
+    { "src": "icon-512.png", "sizes": "512x512" }
+  ]
+}
