@@ -2019,18 +2019,32 @@ svg[stroke="currentColor"], .lucide {
     </div>
   </div>
 
-  <div class="overlay" id="modal-config-backup">
+    <div class="overlay" id="modal-config-backup">
     <div class="modal-sheet">
       <div class="modal-drag"></div>
-      <h3><i data-lucide="save"></i> Backup e Dados</h3>
-      <p class="hint">Suas alterações ficam salvas automaticamente <b>neste aparelho/navegador</b>. Para não perder nada (ou trocar de aparelho), baixe o backup regularmente.</p>
-      <button class="btn-full btn-primary" onclick="exportarDados()"><i data-lucide="arrow-down"></i>️ Baixar backup (JSON)</button>
-      <button class="btn-full btn-secondary" onclick="document.getElementById('import-file').click()"><i data-lucide="arrow-up"></i>️ Restaurar backup</button>
+      <h3><i data-lucide="save"></i> Backup Local</h3>
+      <p class="hint">Salvo no aparelho. Baixe o arquivo para não perder nada.</p>
+      <button class="btn-full btn-primary" onclick="exportarDados()"><i data-lucide="arrow-down"></i> Baixar backup (JSON)</button>
+      <button class="btn-full btn-secondary" onclick="document.getElementById('import-file').click()"><i data-lucide="arrow-up"></i> Restaurar backup</button>
       <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importarDados(event)">
-      <button class="btn-full btn-danger" onclick="limparDados()"><i data-lucide="trash-2"></i> Apagar todos os dados</button>
+      
+      <hr style="border:none;border-top:1px solid #E5E5EA;margin:20px 0">
+      
+      <h3><i data-lucide="cloud"></i> Nuvem (Firebase)</h3>
+      <p class="hint">Sincronize com a nuvem para acessar de outros aparelhos.</p>
+      <div class="toggle-item" style="margin-bottom:10px">
+        <span>Auto-salvar na Nuvem</span>
+        <label class="switch"><input type="checkbox" id="cfg-nuvem-auto" onchange="toggleNuvemAuto()"><span></span></label>
+      </div>
+      <button class="btn-full btn-primary" onclick="forcarEnvioNuvem()"><i data-lucide="arrow-up"></i> Forçar envio pra Nuvem</button>
+      <button class="btn-full btn-secondary" onclick="puxarDaNuvem()"><i data-lucide="arrow-down"></i> Puxar dados da Nuvem</button>
+      
+      <hr style="border:none;border-top:1px solid #E5E5EA;margin:20px 0">
+      <button class="btn-full btn-danger" onclick="limparDados()"><i data-lucide="trash-2"></i> Apagar todos os dados locais</button>
       <button class="btn-full btn-secondary" onclick="closeModal('modal-config-backup')">Fechar</button>
     </div>
   </div>
+
 
 
     <div class="overlay" id="modal-pacote">
@@ -2080,6 +2094,9 @@ svg[stroke="currentColor"], .lucide {
 
   <div class="toast" id="toast"></div>
 </div>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
 <script>
 
 // ==================== LUCIDE ICONS SYSTEM ====================
@@ -3515,6 +3532,109 @@ function calcularRecorrencia() {
   ateEl.textContent = fmtFull(isoLocal(ultimaData));
   info.style.display = 'block';
 }
+// ==================== FIREBASE CLOUD SYNC ====================
+// Substitua as chaves abaixo pelas do seu projeto Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyDtQNSAdvJ3IWsCSe5_l5cEGmkgQ9MKP6k",
+    authDomain: "meuconsultorionv.firebaseapp.com",
+    projectId: "meuconsultorionv",
+    storageBucket: "meuconsultorionv.firebasestorage.app",
+    messagingSenderId: "775789755196",
+    appId: "1:775789755196:web:c1c754467b9fc0e481bc39",
+    measurementId: "G-X49545TGH4"
+  };
+   
+let dbNuvem = null;
+// Inicializa o Firebase apenas se a chave foi colocada
+if (firebaseConfig.apiKey !== "AIzaSyDtQNSAdvJ3IWsCSe5_l5cEGmkgQ9MKP6k") {
+  firebase.initializeApp(firebaseConfig);
+  dbNuvem = firebase.firestore();
+}
+
+// Configuração de auto-save
+if (typeof config.nuvemAuto === 'undefined') config.nuvemAuto = false;
+
+function toggleNuvemAuto() {
+  config.nuvemAuto = document.getElementById('cfg-nuvem-auto').checked;
+  saveLocalApenas(); // Salva a preferência localmente
+  toast(config.nuvemAuto ? 'Auto-save na nuvem ATIVADO' : 'Auto-save na nuvem DESATIVADO');
+}
+
+// Substituir a função save() original para integrar com a nuvem
+const saveLocalApenas = save; // Guarda a função original
+save = function() {
+  saveLocalApenas(); // Sempre salva local (o que você já tinha)
+  
+  // Se o auto-save estiver ligado, manda pro Firebase silenciosamente
+  if (config.nuvemAuto && dbNuvem) {
+    salvarNoFirebaseBackground();
+  }
+};
+
+async function salvarNoFirebaseBackground() {
+  if (!dbNuvem) return;
+  const dados = { pacientes, tipos, agendamentos, receitas, gastos, prontuarios, config, pacotes };
+  try {
+    // Salvando num documento único "meu_banco_1" (Ideal para 1 usuário)
+    await dbNuvem.collection("consultorios").doc("meu_banco_1").set(dados);
+  } catch (e) {
+    console.error("Erro no auto-save da nuvem:", e);
+  }
+}
+
+async function forcarEnvioNuvem() {
+  if (!dbNuvem) { toast("Firebase não configurado no código!"); return; }
+  toast("Enviando para a nuvem...");
+  const dados = { pacientes, tipos, agendamentos, receitas, gastos, prontuarios, config, pacotes };
+  try {
+    await dbNuvem.collection("consultorios").doc("meu_banco_1").set(dados);
+    toast("Salvo na nuvem com sucesso! ☁️✅");
+  } catch (e) {
+    console.error(e);
+    toast("Erro ao salvar na nuvem.");
+  }
+}
+
+async function puxarDaNuvem() {
+  if (!dbNuvem) { toast("Firebase não configurado no código!"); return; }
+  if (!confirm("Isso vai SOBRESCREVER os dados do seu aparelho com os da nuvem. Tem certeza?")) return;
+  
+  toast("Baixando da nuvem...");
+  try {
+    const doc = await dbNuvem.collection("consultorios").doc("meu_banco_1").get();
+    if (doc.exists) {
+      const d = doc.data();
+      pacientes = d.pacientes || [];
+      tipos = d.tipos || clone(seedTipos);
+      agendamentos = d.agendamentos || [];
+      receitas = d.receitas || [];
+      gastos = d.gastos || [];
+      prontuarios = d.prontuarios || {};
+      pacotes = d.pacotes || [];
+      config = mergeCfg(d.config);
+      
+      saveLocalApenas(); // Salva localmente o que puxou
+      aplicarTema();
+      renderHome(); renderAgenda(); renderPacientes(); renderFinanceiro();
+      closeModal('modal-config-backup');
+      toast("Dados restaurados da nuvem! ☁️⬇️");
+    } else {
+      toast("Nenhum dado encontrado na nuvem.");
+    }
+  } catch (e) {
+    console.error(e);
+    toast("Erro ao puxar da nuvem.");
+  }
+}
+
+// Atualiza o botão toggle quando abrir o modal de backup
+const oldOpenModal = openModal;
+openModal = function(id) {
+  oldOpenModal(id);
+  if (id === 'modal-config-backup') {
+    document.getElementById('cfg-nuvem-auto').checked = config.nuvemAuto || false;
+  }
+};
 
 // ==================== INICIALIZAÇÃO ====================
 loadAll();
