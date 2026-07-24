@@ -3650,12 +3650,10 @@ const firebaseConfig = {
   };
 
    let dbNuvem = null;
-// Inicializa o Firebase apenas se a chave foi colocada
-if (firebaseConfig.apiKey !== "AIzaSyDtQNSAdvJ3IWsCSe5_l5cEGmkgQ9MKP6k") {
-  firebase.initializeApp(firebaseConfig);
-  dbNuvem = firebase.firestore();
-}
    
+   // 1. CORREÇÃO: Removido o 'if' que bloqueava a inicialização. Agora ele inicia direto.
+   firebase.initializeApp(firebaseConfig);
+   dbNuvem = firebase.firestore();
    
 // Configuração de auto-save
 if (typeof config.nuvemAuto === 'undefined') config.nuvemAuto = false;
@@ -3742,22 +3740,20 @@ openModal = function(id) {
   }
 };
 
-   
 loadAll();
 aplicarTema();
 aplicarLogo();
 renderHome();
 renderIcons();
-   <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Service Worker registrado!'))
-        .catch(err => console.log('Erro no Service Worker:', err));
-    });
-  }
-</script>
 
+// 2. CORREÇÃO: Removidas as tags <script> que estavam perdidas aqui no meio do JavaScript
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('Service Worker registrado!'))
+      .catch(err => console.log('Erro no Service Worker:', err));
+  });
+}
 </script>
 </body>
 </html>
