@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+<link rel="icon" type="image/png" href="icon-192.png">
+</head>
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -3649,25 +3652,15 @@ const firebaseConfig = {
     measurementId: "G-X49545TGH4"
   };
 
-   let dbNuvem = null;
+    let dbNuvem = null;
    
-   // 1. CORREÇÃO: Removido o 'if' que bloqueava a inicialização. Agora ele inicia direto.
    firebase.initializeApp(firebaseConfig);
    dbNuvem = firebase.firestore();
-   
-// Configuração de auto-save
-if (typeof config.nuvemAuto === 'undefined') config.nuvemAuto = false;
-
-function toggleNuvemAuto() {
-  config.nuvemAuto = document.getElementById('cfg-nuvem-auto').checked;
-  saveLocalApenas(); // Salva a preferência localmente
-  toast(config.nuvemAuto ? 'Auto-save na nuvem ATIVADO' : 'Auto-save na nuvem DESATIVADO');
-}
 
 // Substituir a função save() original para integrar com a nuvem
-const saveLocalApenas = save; // Guarda a função original
+const saveLocalApenas = save; 
 save = function() {
-  saveLocalApenas(); // Sempre salva local (o que você já tinha)
+  saveLocalApenas(); 
   
   // Se o auto-save estiver ligado, manda pro Firebase silenciosamente
   if (config.nuvemAuto && dbNuvem) {
@@ -3679,7 +3672,6 @@ async function salvarNoFirebaseBackground() {
   if (!dbNuvem) return;
   const dados = { pacientes, tipos, agendamentos, receitas, gastos, prontuarios, config, pacotes };
   try {
-    // Salvando num documento único "meu_banco_1" (Ideal para 1 usuário)
     await dbNuvem.collection("consultorios").doc("meu_banco_1").set(dados);
   } catch (e) {
     console.error("Erro no auto-save da nuvem:", e);
@@ -3717,7 +3709,7 @@ async function puxarDaNuvem() {
       pacotes = d.pacotes || [];
       config = mergeCfg(d.config);
       
-      saveLocalApenas(); // Salva localmente o que puxou
+      saveLocalApenas(); 
       aplicarTema();
       renderHome(); renderAgenda(); renderPacientes(); renderFinanceiro();
       closeModal('modal-config-backup');
@@ -3731,7 +3723,6 @@ async function puxarDaNuvem() {
   }
 }
 
-// Atualiza o botão toggle quando abrir o modal de backup
 const oldOpenModal = openModal;
 openModal = function(id) {
   oldOpenModal(id);
@@ -3740,13 +3731,25 @@ openModal = function(id) {
   }
 };
 
+function toggleNuvemAuto() {
+  config.nuvemAuto = document.getElementById('cfg-nuvem-auto').checked;
+  saveLocalApenas();
+  toast(config.nuvemAuto ? 'Auto-save na nuvem ATIVADO' : 'Auto-save na nuvem DESATIVADO');
+}
+
+// -----------------------------------------------------
+// ORDEM CORRETA: Primeiro carregamos os dados do sistema
 loadAll();
+
+// SÓ DEPOIS verificamos as configurações da nuvem (evita o erro da tela branca)
+if (typeof config.nuvemAuto === 'undefined') config.nuvemAuto = false;
+// -----------------------------------------------------
+
 aplicarTema();
 aplicarLogo();
 renderHome();
 renderIcons();
 
-// 2. CORREÇÃO: Removidas as tags <script> que estavam perdidas aqui no meio do JavaScript
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js')
